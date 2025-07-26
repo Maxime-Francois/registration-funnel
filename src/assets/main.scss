@@ -28,16 +28,29 @@ a,
   }
 }
 
-@media (min-width: 1024px) {
   body {
     display: flex;
     place-items: center;
-  }
+
 
   #app {
     display: flex;
     padding: 0 2rem;
   }
+}
+.funnel{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  padding: 2rem;
+  box-shadow: var(--box-shadow-primary);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 800px;
+  margin: auto;
+
 }
 
 .registration-view {

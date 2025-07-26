@@ -1,16 +1,18 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import RegistrationView from '@/views/RegistrationView.vue'
+import RegistrationFunnel from '@/components/RegisterFunnel.vue'
+
+
+const routes = [
+  {
+    path: '/',
+    name: 'Registration',
+    component: RegistrationFunnel, // Point d’entrée unique "/"
+  },
+]
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/',
-      name: 'home',
-      component: RegistrationView,
-    },
-    
-  ],
+  history: createWebHistory(),
+  routes,
 })
 
 export default router
