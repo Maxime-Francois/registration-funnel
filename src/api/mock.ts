@@ -189,6 +189,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   // 1. Dans la partie POST interceptor, corrigez le stockage :
   if (url.match(/\/api\/registration\/step\/([^\/]+)$/) && init?.method === 'POST') {
     const slug = url.match(/\/api\/registration\/step\/([^\/]+)$/)?.[1]
+    console.log('Mock POST', slug, JSON.parse(init.body as string))
     if (slug && steps[slug] && init.body) {
       try {
         const body = JSON.parse(init.body as string)
@@ -208,6 +209,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
           else if (body.data.fileName) {
             steps[slug].data.fileName = body.data.fileName
           }
+          
         }
 
         // Déterminer le slug suivant dynamiquement

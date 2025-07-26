@@ -5,7 +5,7 @@
       <input
         id="address"
         type="text"
-        v-model="local.address"
+        v-model="localAddress"
         autocomplete="street-address"
         placeholder="Ex: 10 rue de Paris"
         required
@@ -21,36 +21,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, defineEmits, watchEffect } from 'vue'
+import { ref, watch, defineProps, defineEmits } from 'vue'
 
 const props = defineProps<{ modelValue: { address?: string }; stepConfig: any }>()
 const emit = defineEmits(['update:modelValue', 'submit'])
 
-const local = ref<{ address?: string }>({ ...props.modelValue })
 const error = ref('')
 
-// Synchronisation props -> local
-watchEffect(() => {
-  local.value = { ...props.modelValue }
-})
+// LOCAL REF POUR LA SAISIE, initialisée depuis props.modelValue.address
+const localAddress = ref(props.modelValue.address || '')
 
-// Synchronisation local -> parent
-watchEffect(() => {
-  emit('update:modelValue', local.value)
+// Synchronisation quand props.modelValue.address change (ex: reset)
+watch(
+  () => props.modelValue.address,
+  (newAddress) => {
+    if (newAddress !== localAddress.value) {
+      localAddress.value = newAddress || ''
+    }
+  },
+)
+
+// Synchronisation locale => parent (update:modelValue)
+watch(localAddress, (newVal) => {
+  emit('update:modelValue', { address: newVal })
 })
 
 // Regex simple : au moins un ou plusieurs chiffres, puis au moins un caractère texte (lettres, espaces, etc.)
-const addressRegex = /^\d+\s+.+$/ // ex: "10 rue de Paris", "5 Av. Victor Hugo"
+const addressRegex = /^\d+\s+.+$/ // Ex: "10 rue de Paris", "5 Av. Victor Hugo"
 
 function handleSubmit() {
   error.value = ''
 
-  if (!local.value.address || local.value.address.trim() === '') {
+  if (!localAddress.value || localAddress.value.trim() === '') {
     error.value = "L'adresse est requise."
     return
   }
 
-  if (!addressRegex.test(local.value.address.trim())) {
+  if (!addressRegex.test(localAddress.value.trim())) {
     error.value = "L'adresse doit contenir un numéro suivi de texte (ex: 10 rue de Paris)."
     return
   }
