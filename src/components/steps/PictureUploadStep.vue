@@ -1,6 +1,6 @@
 <template>
-  <form @submit.prevent="handleSubmit">
-    <div class="form-field">
+  <div class="content-area">
+    <div class="form-field file-field" :class="{ 'has-preview': preview }">
       <label for="picture">Photo de profil</label>
       <div class="file-upload-container">
         <input
@@ -17,10 +17,12 @@
         </div>
       </div>
 
-      <!-- Preview de l'image -->
-      <div v-if="preview" class="preview-container">
-        <img :src="preview" alt="Aperçu de la photo" class="preview-image" />
-        <button type="button" @click="removeImage" class="remove-btn">Supprimer</button>
+      <!-- Preview de l'image avec hauteur stable -->
+      <div class="preview-container">
+        <div v-if="preview">
+          <img :src="preview" alt="Aperçu de la photo" class="preview-image" />
+          <button type="button" @click="removeImage" class="remove-btn">Supprimer</button>
+        </div>
       </div>
 
       <!-- Informations sur le fichier -->
@@ -32,9 +34,9 @@
 
       <div v-if="error" class="error">{{ error }}</div>
     </div>
-    <button type="submit" :disabled="!local.picture">Suivant</button>
-  </form>
+  </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, watch, defineProps, defineEmits, watchEffect, nextTick } from 'vue'
@@ -46,35 +48,26 @@ const error = ref('')
 const preview = ref<string | null>(null)
 const fileInfo = ref<File | null>(null)
 
-// Ajout d'une ref pour stocker le nom du fichier
 const fileName = ref<string | null>(null)
 
-// Watcher pour restaurer l'état quand modelValue change (retour en arrière)
 watchEffect(() => {
-  // Mettre à jour le modèle local
   local.value = { ...props.modelValue }
-
-  // Restaurer l'état visuel après la mise à jour
   nextTick(() => {
     restoreFileState()
   })
 })
 
-// Fonction pour restaurer l'état visuel du fichier
 function restoreFileState() {
   if (local.value.picture && local.value.picture instanceof File) {
-    // Restaurer fileInfo
     fileInfo.value = local.value.picture
     fileName.value = local.value.picture.name
 
-    // Recréer la preview
     const reader = new FileReader()
     reader.onload = (e) => {
       preview.value = e.target?.result as string
     }
     reader.readAsDataURL(local.value.picture)
   } else {
-    // Nettoyer l'état si pas de fichier
     preview.value = null
     fileInfo.value = null
     fileName.value = null
@@ -92,13 +85,11 @@ function formatFileSize(bytes: number): string {
 }
 
 function validateFile(file: File): boolean {
-  // Validation du type
   if (!['image/jpeg', 'image/png'].includes(file.type)) {
     error.value = 'Format non supporté. Veuillez sélectionner un fichier JPG ou PNG.'
     return false
   }
 
-  // Validation de la taille (2 Mo = 2 * 1024 * 1024 bytes)
   const maxSize = 2 * 1024 * 1024
   if (file.size > maxSize) {
     error.value = `Fichier trop volumineux. Taille maximum : ${formatFileSize(maxSize)}`
@@ -128,23 +119,20 @@ function onFileChange(e: Event) {
     return
   }
 
-  // Fichier valide
   local.value.picture = file
   fileInfo.value = file
-  fileName.value = file.name // Stocker le nom du fichier
+  fileName.value = file.name
 
-  // Créer la preview
   const reader = new FileReader()
   reader.onload = (e) => {
     preview.value = e.target?.result as string
   }
   reader.readAsDataURL(file)
 
-  // Mettre à jour le modèle avec le nom du fichier aussi
   const updatedModel = {
     ...local.value,
     picture: file,
-    fileName: file.name, // Ajouter le nom du fichier au modèle
+    fileName: file.name,
   }
   local.value = updatedModel
 }
@@ -156,76 +144,7 @@ function removeImage() {
   fileName.value = null
   error.value = ''
 
-  // Reset l'input file
   const fileInput = document.getElementById('picture') as HTMLInputElement
   if (fileInput) fileInput.value = ''
 }
 
-function handleSubmit() {
-  error.value = ''
-  if (!local.value.picture) {
-    error.value = 'Veuillez sélectionner une photo de profil.'
-    return
-  }
-  emit('submit')
-}
-</script>
-
-<style scoped>
-.file-upload-container {
-  border: 2px dashed #ccc;
-  padding: 20px;
-  text-align: center;
-  border-radius: 8px;
-  margin: 10px 0;
-}
-
-.upload-info {
-  margin-top: 10px;
-  color: #666;
-  font-size: 0.9em;
-}
-
-.upload-info p {
-  margin: 5px 0;
-}
-
-.preview-container {
-  margin: 15px 0;
-  text-align: center;
-}
-
-.preview-image {
-  max-width: 200px;
-  max-height: 200px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.remove-btn {
-  margin-top: 10px;
-  padding: 5px 15px;
-  background: #ff4444;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.remove-btn:hover {
-  background: #cc0000;
-}
-
-.file-info {
-  background: #f5f5f5;
-  padding: 10px;
-  border-radius: 4px;
-  margin: 10px 0;
-}
-
-.file-info p {
-  margin: 5px 0;
-  font-size: 0.9em;
-}
-
-</style>

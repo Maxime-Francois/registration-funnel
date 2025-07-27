@@ -7,55 +7,66 @@
     :form-error="formError"
     ref="stepChildRef"
   />
-  <form v-else @submit.prevent="handleSubmit" novalidate>
-    <div v-for="field in currentFields" :key="field.name" class="form-field">
-      <label :for="field.name">{{ field.label }}</label>
-
-      <input
-        v-if="['text', 'email', 'date'].includes(field.type)"
-        :type="field.type"
-        :id="`${props.stepConfig.slug}-${field.name}`"
-        :name="field.name"
-        :autocomplete="getAutocomplete(field.name)"
-        :placeholder="field.placeholder"
-        :required="field.required"
-        v-model="model[field.name]"
-        :class="{ invalid: errors[field.name] }"
-      />
-
-      <div v-else-if="field.type === 'file'" class="file-upload-container">
+  <div v-else class="content-area">
+    <form @submit.prevent="handleSubmit" novalidate>
+      <div
+        v-for="field in currentFields"
+        :key="field.name"
+        class="form-field"
+        :class="{
+          'file-field': field.type === 'file',
+          'has-preview': field.type === 'file' && filePreviews[field.name],
+        }"
+      >
+        <label :for="`${props.stepConfig.slug}-${field.name}`">{{ field.label }}</label>
         <input
-          type="file"
+          v-if="['text', 'email', 'date'].includes(field.type)"
+          :type="field.type"
           :id="`${props.stepConfig.slug}-${field.name}`"
           :name="field.name"
-          :accept="getFileAccept(field.name)"
-          :required="field.required && !model[field.name]"
-          @change="onFileChange($event, field.name)"
-          class="file-input"
+          :autocomplete="getAutocomplete(field.name)"
+          :placeholder="field.placeholder"
+          :required="field.required"
+          v-model="model[field.name]"
+          :class="{ invalid: errors[field.name] }"
         />
-        <div class="upload-info" v-if="field.name === 'picture'">
-          <p>Formats acceptés : JPG, PNG</p>
-          <p>Taille max : 2 Mo</p>
+
+        <div v-else-if="field.type === 'file'" class="file-upload-container">
+          <input
+            type="file"
+            :id="`${props.stepConfig.slug}-${field.name}`"
+            :name="field.name"
+            :accept="getFileAccept(field.name)"
+            :required="field.required && !model[field.name]"
+            @change="onFileChange($event, field.name)"
+            class="file-input"
+          />
+          <div class="upload-info" v-if="field.name === 'picture'">
+            <p>Formats acceptés : JPG, PNG</p>
+            <p>Taille max : 2 Mo</p>
+          </div>
+
+          <div class="preview-container">
+            <div v-if="filePreviews[field.name]">
+              <img :src="filePreviews[field.name]" alt="Aperçu" class="preview-image" />
+              <button type="button" @click="removeFile(field.name)" class="remove-btn">
+                Supprimer
+              </button>
+            </div>
+          </div>
+
+          <div v-if="fileInfos[field.name]" class="file-info">
+            <p><strong>Nom:</strong> {{ fileInfos[field.name].name }}</p>
+            <p><strong>Taille:</strong> {{ formatFileSize(fileInfos[field.name].size) }}</p>
+            <p><strong>Type:</strong> {{ fileInfos[field.name].type }}</p>
+          </div>
         </div>
 
-        <div v-if="filePreviews[field.name]" class="preview-container">
-          <img :src="filePreviews[field.name]" alt="Aperçu" class="preview-image" />
-          <button type="button" @click="removeFile(field.name)" class="remove-btn">
-            Supprimer
-          </button>
-        </div>
-
-        <div v-if="fileInfos[field.name]" class="file-info">
-          <p><strong>Nom:</strong> {{ fileInfos[field.name].name }}</p>
-          <p><strong>Taille:</strong> {{ formatFileSize(fileInfos[field.name].size) }}</p>
-          <p><strong>Type:</strong> {{ fileInfos[field.name].type }}</p>
-        </div>
+        <div v-if="errors[field.name]" class="error">{{ errors[field.name] }}</div>
       </div>
-
-      <div v-if="errors[field.name]" class="error">{{ errors[field.name] }}</div>
-    </div>
-    <div v-if="formError" class="error">{{ formError }}</div>
-  </form>
+      <div v-if="formError" class="error">{{ formError }}</div>
+    </form>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -74,7 +85,7 @@ import {
 import type { StepConfig } from '@/components/types/registration'
 
 const props = defineProps<{ stepConfig: StepConfig; modelValue: Record<string, unknown> }>()
-const emit = defineEmits(['update:modelValue', 'submit', 'error']) // Ajout 'error'
+const emit = defineEmits(['update:modelValue', 'submit', 'error'])
 
 const model = ref<Record<string, unknown>>({})
 const errors = ref<Record<string, string>>({})
@@ -82,6 +93,7 @@ const filePreviews = ref<Record<string, string>>({})
 const fileInfos = ref<Record<string, File | null>>({})
 const dynamicStepComponent = shallowRef<any>(null)
 const formError = ref('')
+const stepChildRef = ref<any>(null)
 
 const currentFields = computed(() => props.stepConfig.assets.fields || [])
 
@@ -92,12 +104,15 @@ watchEffect(() => {
   })
 })
 
-watch(model, (val) => {
-  // Ne pas émettre si la valeur n'a pas changé
-  if (JSON.stringify(val) !== JSON.stringify(props.modelValue)) {
-    emit('update:modelValue', val)
-  }
-}, { deep: true })
+watch(
+  model,
+  (val) => {
+    if (JSON.stringify(val) !== JSON.stringify(props.modelValue)) {
+      emit('update:modelValue', val)
+    }
+  },
+  { deep: true },
+)
 
 watch(
   () => props.stepConfig.slug,
@@ -217,9 +232,15 @@ function removeFile(fieldName: string) {
 }
 
 function validate(): boolean {
+  // Si on a un composant dynamique, utiliser sa validation
+  if (dynamicStepComponent.value && stepChildRef.value?.validate) {
+    return stepChildRef.value.validate()
+  }
+
+  // Sinon, utiliser la validation par défaut
   errors.value = {}
   let valid = true
-  let firstError = '' // Ajout
+  let firstError = ''
 
   for (const field of currentFields.value) {
     const v = model.value[field.name]
@@ -232,7 +253,6 @@ function validate(): boolean {
             valid = false
           }
         } else if (!v || (typeof v === 'string' && v.trim() === '')) {
-          // Personnalisation pour birthdate
           if (field.name === 'birthdate') {
             errors.value[field.name] = 'La date de naissance est requise.'
           } else {
@@ -263,13 +283,12 @@ function validate(): boolean {
         }
       }
     }
-    // Ajout : récupère le premier message d'erreur
     if (!firstError && errors.value[field.name]) {
       firstError = errors.value[field.name]
     }
   }
 
-  emit('error', valid ? '' : firstError) // Ajout : émet l’erreur globale
+  emit('error', valid ? '' : firstError)
   return valid
 }
 
@@ -280,64 +299,4 @@ function handleSubmit() {
 }
 </script>
 
-<style scoped>
-.file-upload-container {
-  border: 2px dashed #ccc;
-  padding: 20px;
-  border-radius: 8px;
-  margin: 10px 0;
-  text-align: center;
-}
-
-.upload-info {
-  color: #666;
-  font-size: 0.9em;
-  margin-top: 10px;
-}
-
-.preview-container {
-  margin: 15px 0;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.preview-image {
-  max-width: 200px;
-  max-height: 200px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.remove-btn {
-  background: #f44336;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 5px 15px;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-.remove-btn:hover {
-  background: #d32f2f;
-}
-
-.file-info {
-  background: #f5f5f5;
-  border-radius: 4px;
-  padding: 10px;
-  margin-top: 10px;
-}
-
-.file-info p {
-  margin: 5px 0;
-  font-size: 0.9em;
-}
-
-.invalid {
-  border-color: red;
-}
-</style>
+<style scoped></style>

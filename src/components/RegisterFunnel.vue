@@ -5,10 +5,10 @@
       <h2 v-else>{{ summary?.title }}</h2>
 
       <div v-if="stepConfig && !isSummary" class="progress">
-        Étape {{ stepConfig.current_step }} sur {{ stepConfig.total_steps }}
+        <p>Étape {{ stepConfig.current_step }} sur {{ stepConfig.total_steps }}</p>
       </div>
 
-      <div v-if="formError" class="error">{{ formError }}</div>
+      
       <div v-if="apiError" class="error">{{ apiError }}</div>
 
       <div v-if="loading" class="loading">Chargement…</div>
@@ -32,18 +32,21 @@
 
       <template v-else-if="isSummary">
         <div v-if="!summary" class="loading">Chargement du résumé...</div>
-        <div v-else class="summary">
-          <ul>
-            <li v-for="step in summary.steps" :key="step.slug">
-              <strong>{{ step.label }}:</strong>
-              <span v-if="!step.has_error">{{ step.data }}</span>
-              <span v-else class="error">{{ step.error }}</span>
-            </li>
-          </ul>
+        <div v-else class="content-area">
+          <div class="summary">
+            <ul>
+              <li v-for="step in summary.steps" :key="step.slug">
+                <strong>{{ step.label }}:</strong>
+                <span v-if="!step.has_error">{{ step.data }}</span>
+              </li>
+            </ul>
 
-          <div v-if="summary.is_valid" class="success">Inscription complète !</div>
-          <div v-else class="error">Merci de corriger les erreurs ci-dessus.</div>
+            <div v-if="summary.is_valid" class="success">Inscription complète !</div>
+            <div v-else class="error">Merci de corriger les erreurs ci-dessus.</div>
+          </div>
+        </div>
 
+        <div class="actions">
           <button @click="goToPreviousStep" class="back-btn">Retour</button>
         </div>
       </template>
@@ -88,7 +91,6 @@ watch(currentSlug, async (slug) => {
 async function onNext() {
   if (isSummary.value) return
 
-  // Appel validation de l'enfant
   if (stepComponentRef.value?.validate) {
     const valid = stepComponentRef.value.validate()
     if (!valid) return
@@ -99,7 +101,7 @@ async function onNext() {
     if (response.next_slug) {
       await loadStep(response.next_slug)
       if (stepConfig.value) localData.value = { ...stepConfig.value.data }
-      formError.value = null // Réinitialise l’erreur à chaque étape
+      formError.value = null
     } else {
       isSummary.value = true
       summary.value = null
@@ -115,7 +117,7 @@ async function goToPreviousStep() {
     isSummary.value = false
     summary.value = null
     await loadStep('address')
-    formError.value = null // Réinitialise l’erreur
+    formError.value = null
   } else if (stepConfig.value && stepConfig.value.current_step > 1) {
     const slugs = ['personal_information', 'birthdate', 'picture', 'address']
     const idx = stepConfig.value.current_step - 1
@@ -123,40 +125,12 @@ async function goToPreviousStep() {
     if (prevSlug) {
       await loadStep(prevSlug)
       if (stepConfig.value) localData.value = { ...stepConfig.value.data }
-      formError.value = null // Réinitialise l’erreur
+      formError.value = null
     }
   }
 }
 </script>
 
 <style scoped>
-.actions {
-  margin-top: 1rem;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-}
-.back-btn {
-  background-color: #ccc;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.main-btn {
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.success {
-  font-weight: bold;
-  color: green;
-  margin-top: 1rem;
-}
-.loading {
-  font-style: italic;
-}
+/* Pas de styles ici, tout est dans le SCSS global */
 </style>

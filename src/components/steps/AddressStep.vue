@@ -10,24 +10,23 @@
         placeholder="Ex: 10 rue de Paris"
         required
         aria-describedby="addressHelp"
+        :class="{ invalid: error }"
       />
-      <small id="addressHelp" class="help-text">
-        Veuillez saisir une adresse contenant un numéro et du texte (ex: 10 rue de Paris)
-      </small>
       <div v-if="error" class="error">{{ error }}</div>
     </div>
   </form>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, defineProps, defineEmits } from 'vue'
+import { ref, watch, defineProps, defineEmits, defineExpose } from 'vue'
 
 const props = defineProps<{
   modelValue: { address?: string }
   stepConfig: any
   formError?: string
-}>() 
-const emit = defineEmits(['update:modelValue', 'submit'])
+}>()
+
+const emit = defineEmits(['update:modelValue', 'submit', 'error'])
 
 const error = ref('')
 
@@ -49,7 +48,7 @@ watch(localAddress, (newVal) => {
   emit('update:modelValue', { address: newVal })
 })
 
-// Synchronisation de l’erreur globale
+// Synchronisation de l'erreur globale
 watch(
   () => props.formError,
   (newVal) => {
@@ -57,40 +56,50 @@ watch(
   },
 )
 
-// Regex simple : au moins un ou plusieurs chiffres, puis au moins un caractère texte (lettres, espaces, etc.)
-const addressRegex = /^\d+\s+.+$/ // Ex: "10 rue de Paris", "5 Av. Victor Hugo"
+// Regex pour l'adresse
+const addressRegex = /^\d+\s+[A-Za-zÀ-ÿ]+(?:\s+[A-Za-zÀ-ÿ]+)*$/
 
-function handleSubmit() {
+function validate(): boolean {
   error.value = ''
 
   if (!localAddress.value || localAddress.value.trim() === '') {
     error.value = "L'adresse est requise."
-    return
+    emit('error', error.value)
+    return false
   }
 
   if (!addressRegex.test(localAddress.value.trim())) {
     error.value = "L'adresse doit contenir un numéro suivi de texte (ex: 10 rue de Paris)."
-    return
+    emit('error', error.value)
+    return false
   }
 
-  emit('submit')
+  emit('error', '') // Pas d'erreur
+  return true
 }
+
+function handleSubmit() {
+  if (validate()) {
+    emit('submit')
+  }
+}
+
+// Exposer la méthode validate pour que le parent puisse l'appeler
+defineExpose({ validate })
 </script>
 
 <style scoped>
-input[type='text'] {
-  width: 100%;
-  padding: 8px;
-  font-size: 1em;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  box-sizing: border-box;
+.form-field {
+  margin-bottom: 1rem;
 }
 
-.help-text {
-  font-size: 0.85em;
-  color: #666;
-  margin-top: 4px;
-  display: block;
+.invalid {
+  border-color: #dc3545;
+}
+
+.error {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
 }
 </style>

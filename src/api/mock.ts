@@ -1,7 +1,5 @@
-// mock.ts
 import type { StepConfig, RegistrationSummary } from '@/components/types/registration'
 
-// Données étapes mockées (simplifiées)
 const steps: Record<string, StepConfig> = {
   personal_information: {
     total_steps: 4,

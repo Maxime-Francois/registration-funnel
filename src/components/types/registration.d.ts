@@ -4,13 +4,13 @@ export interface StepField {
   label: string
   required?: boolean
   placeholder?: string
-  options?: { label: string; value: string | number }[] // si select/radio
+  options?: { label: string; value: string | number }[] 
 }
 
 export interface StepAssets {
   type: 'form' 
   fields: StepField[]
-  validation: Record<string, string[]> // ex: { first_name: ["required", "min:2"] }
+  validation: Record<string, string[]> 
 }
 
 export interface StepConfig {
