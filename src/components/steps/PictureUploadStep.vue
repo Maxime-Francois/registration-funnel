@@ -101,7 +101,7 @@ function validateFile(file: File): boolean {
   // Validation de la taille (2 Mo = 2 * 1024 * 1024 bytes)
   const maxSize = 2 * 1024 * 1024
   if (file.size > maxSize) {
-    error.value = Fichier trop volumineux. Taille maximum : ${formatFileSize(maxSize)}
+    error.value = `Fichier trop volumineux. Taille maximum : ${formatFileSize(maxSize)}`
     return false
   }
 
@@ -228,9 +228,4 @@ function handleSubmit() {
   font-size: 0.9em;
 }
 
-.error {
-  color: #ff4444;
-  margin-top: 10px;
-  font-weight: bold;
-}
 </style>

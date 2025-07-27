@@ -1,6 +1,7 @@
-import type { StepConfig, RegistrationSummary } from '@/components/types/registration.d.ts'
+// mock.ts
+import type { StepConfig, RegistrationSummary } from '@/components/types/registration'
 
-// Données mockées pour chaque étape
+// Données étapes mockées (simplifiées)
 const steps: Record<string, StepConfig> = {
   personal_information: {
     total_steps: 4,
@@ -17,23 +18,14 @@ const steps: Record<string, StepConfig> = {
           required: true,
           placeholder: 'Votre prénom',
         },
-        {
-          name: 'last_name',
-          type: 'text',
-          label: 'Nom',
-          required: true,
-          placeholder: 'Votre nom',
-        },
+        { name: 'last_name', type: 'text', label: 'Nom', required: true, placeholder: 'Votre nom' },
       ],
       validation: {
         first_name: ['required', 'min:2'],
         last_name: ['required', 'min:2'],
       },
     },
-    data: {
-      first_name: null,
-      last_name: null,
-    },
+    data: { first_name: null, last_name: null },
   },
   birthdate: {
     total_steps: 4,
@@ -42,22 +34,12 @@ const steps: Record<string, StepConfig> = {
     slug: 'birthdate',
     assets: {
       type: 'form',
-      fields: [
-        {
-          name: 'birthdate',
-          type: 'date',
-          label: 'Date de naissance',
-          required: true,
-          placeholder: '',
-        },
-      ],
+      fields: [{ name: 'birthdate', type: 'date', label: 'Date de naissance', required: true }],
       validation: {
         birthdate: ['required', 'minAge:18'],
       },
     },
-    data: {
-      birthdate: null,
-    },
+    data: { birthdate: null },
   },
   picture: {
     total_steps: 4,
@@ -66,22 +48,12 @@ const steps: Record<string, StepConfig> = {
     slug: 'picture',
     assets: {
       type: 'form',
-      fields: [
-        {
-          name: 'picture',
-          type: 'file',
-          label: 'Photo de profil',
-          required: true,
-          placeholder: '',
-        },
-      ],
+      fields: [{ name: 'picture', type: 'file', label: 'Photo de profil', required: true }],
       validation: {
         picture: ['required', 'fileType:jpg,png', 'maxSize:2MB'],
       },
     },
-    data: {
-      picture: null,
-    },
+    data: { picture: null },
   },
   address: {
     total_steps: 4,
@@ -100,16 +72,14 @@ const steps: Record<string, StepConfig> = {
         },
       ],
       validation: {
-        address: ['required', 'complete'],
+        address: ['required'],
       },
     },
-    data: {
-      address: null,
-    },
+    data: { address: null },
   },
 }
 
-// Labels pour le résumé
+// Labels résumé
 const stepLabels: Record<string, string> = {
   personal_information: 'Informations personnelles',
   birthdate: 'Date de naissance',
@@ -118,7 +88,6 @@ const stepLabels: Record<string, string> = {
 }
 
 function getSummaryData(): RegistrationSummary {
-  // Génère dynamiquement le résumé à partir des données postées
   const personal = steps.personal_information.data
   const birth = steps.birthdate.data
   const pic = steps.picture.data
@@ -127,12 +96,11 @@ function getSummaryData(): RegistrationSummary {
   return {
     title: 'Récapitulatif de votre inscription',
     is_valid:
-      !addr ||
-      (!!personal.first_name &&
-        !!personal.last_name &&
-        !!birth.birthdate &&
-        !!pic.picture &&
-        !!addr.address),
+      !!personal.first_name &&
+      !!personal.last_name &&
+      !!birth.birthdate &&
+      !!pic.picture &&
+      !!addr.address,
     steps: [
       {
         slug: 'personal_information',
@@ -163,19 +131,18 @@ function getSummaryData(): RegistrationSummary {
         label: stepLabels.address,
         has_error: !addr.address,
         data: addr.address || null,
-        error: !addr.address ? 'Adresse incomplete' : undefined,
+        error: !addr.address ? 'Adresse incomplète' : undefined,
       },
     ],
   }
 }
 
-// Intercepter les appels fetch pour simuler l'API
+// Interception fetch (simulation API)
 const originalFetch = window.fetch
-
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input.toString()
 
-  // Intercepter GET /api/registration/step/{slug}
+  // GET step
   if (url.match(/\/api\/registration\/step\/([^\/]+)$/) && (!init || init.method === 'GET')) {
     const slug = url.match(/\/api\/registration\/step\/([^\/]+)$/)?.[1]
     if (slug && steps[slug]) {
@@ -186,33 +153,23 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     }
   }
 
-  // 1. Dans la partie POST interceptor, corrigez le stockage :
+  // POST step
   if (url.match(/\/api\/registration\/step\/([^\/]+)$/) && init?.method === 'POST') {
     const slug = url.match(/\/api\/registration\/step\/([^\/]+)$/)?.[1]
-    console.log('Mock POST', slug, JSON.parse(init.body as string))
     if (slug && steps[slug] && init.body) {
       try {
         const body = JSON.parse(init.body as string)
         steps[slug].data = { ...body.data }
 
-        // Correction pour l'étape picture
+        // Picture spécial stockage fileName
         if (slug === 'picture' && body.data.picture) {
-          // Si c'est un objet File avec un name
-          if (
-            body.data.picture &&
-            typeof body.data.picture === 'object' &&
-            body.data.picture.name
-          ) {
+          if (body.data.picture.name) {
             steps[slug].data.fileName = body.data.picture.name
-          }
-          // Si fileName est fourni directement dans les data
-          else if (body.data.fileName) {
+          } else if (body.data.fileName) {
             steps[slug].data.fileName = body.data.fileName
           }
-          
         }
 
-        // Déterminer le slug suivant dynamiquement
         const order = Object.keys(steps)
         const currentIndex = order.indexOf(slug)
         const nextSlug =
@@ -230,7 +187,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     }
   }
 
-  // Intercepter GET /api/registration/summary
+  // GET summary
   if (url === '/api/registration/summary' && (!init || init.method === 'GET')) {
     return new Response(JSON.stringify(getSummaryData()), {
       status: 200,
@@ -238,36 +195,28 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     })
   }
 
-  // Pour tous les autres appels, utiliser le fetch original
   return originalFetch(input, init)
 }
 
+// Fonctions fetch/mock API
 export async function fetchStep(slug: string): Promise<StepConfig> {
   const response = await fetch(`/api/registration/step/${slug}`)
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
   return response.json()
 }
 
 export async function postStep(slug: string, data: Record<string, any>): Promise<StepConfig> {
   const response = await fetch(`/api/registration/step/${slug}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data }),
   })
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
   return response.json()
 }
 
 export async function fetchSummary(): Promise<RegistrationSummary> {
   const response = await fetch('/api/registration/summary')
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`)
-  }
+  if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
   return response.json()
 }

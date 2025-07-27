@@ -16,19 +16,22 @@
       </small>
       <div v-if="error" class="error">{{ error }}</div>
     </div>
-    <button type="submit">Suivant</button>
   </form>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, defineProps, defineEmits } from 'vue'
 
-const props = defineProps<{ modelValue: { address?: string }; stepConfig: any }>()
+const props = defineProps<{
+  modelValue: { address?: string }
+  stepConfig: any
+  formError?: string
+}>() 
 const emit = defineEmits(['update:modelValue', 'submit'])
 
 const error = ref('')
 
-// LOCAL REF POUR LA SAISIE, initialisée depuis props.modelValue.address
+// Local state for address
 const localAddress = ref(props.modelValue.address || '')
 
 // Synchronisation quand props.modelValue.address change (ex: reset)
@@ -45,6 +48,14 @@ watch(
 watch(localAddress, (newVal) => {
   emit('update:modelValue', { address: newVal })
 })
+
+// Synchronisation de l’erreur globale
+watch(
+  () => props.formError,
+  (newVal) => {
+    if (newVal !== error.value) error.value = newVal || ''
+  },
+)
 
 // Regex simple : au moins un ou plusieurs chiffres, puis au moins un caractère texte (lettres, espaces, etc.)
 const addressRegex = /^\d+\s+.+$/ // Ex: "10 rue de Paris", "5 Av. Victor Hugo"
@@ -67,10 +78,6 @@ function handleSubmit() {
 </script>
 
 <style scoped>
-.form-field {
-  margin-bottom: 1rem;
-}
-
 input[type='text'] {
   width: 100%;
   padding: 8px;
@@ -85,30 +92,5 @@ input[type='text'] {
   color: #666;
   margin-top: 4px;
   display: block;
-}
-
-.error {
-  color: #ff4444;
-  margin-top: 8px;
-  font-weight: bold;
-}
-
-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 1em;
-  padding: 10px 20px;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #0056b3;
-}
-
-button:disabled {
-  background-color: #999;
-  cursor: not-allowed;
 }
 </style>

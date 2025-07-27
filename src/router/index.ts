@@ -6,7 +6,7 @@ const routes = [
   {
     path: '/',
     name: 'Registration',
-    component: RegistrationFunnel, // Point d’entrée unique "/"
+    component: RegistrationFunnel, 
   },
 ]
 

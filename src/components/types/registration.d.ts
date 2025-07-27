@@ -8,7 +8,7 @@ export interface StepField {
 }
 
 export interface StepAssets {
-  type: 'form' // ou autre dans le futur
+  type: 'form' 
   fields: StepField[]
   validation: Record<string, string[]> // ex: { first_name: ["required", "min:2"] }
 }

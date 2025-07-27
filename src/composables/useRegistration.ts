@@ -1,3 +1,4 @@
+// useRegistration.ts
 import { ref } from 'vue'
 import { fetchStep, postStep } from '@/api/mock'
 import type { StepConfig } from '@/components/types/registration'
@@ -28,7 +29,7 @@ export function useRegistration() {
       const response = await postStep(currentSlug.value, data)
       stepConfig.value = response
       currentSlug.value = response.slug
-      return response // retourne la réponse complète (avec next_slug)
+      return response
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : 'Une erreur est survenue'
       return null
