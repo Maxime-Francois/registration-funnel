@@ -8,7 +8,8 @@
         Étape {{ stepConfig.current_step }} sur {{ stepConfig.total_steps }}
       </div>
 
-      <div v-if="error" class="error">{{ error }}</div>
+      <div v-if="formError" class="error">{{ formError }}</div>
+      <div v-if="apiError" class="error">{{ apiError }}</div>
 
       <div v-if="loading" class="loading">Chargement…</div>
 
@@ -51,7 +52,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, watchEffect } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import StepRenderer from '@/components/StepRenderer.vue'
 import { useRegistration } from '@/composables/useRegistration'
 import { fetchSummary } from '@/api/mock'
@@ -69,14 +70,18 @@ const localData = ref<Record<string, unknown>>({})
 const isSummary = ref(false)
 const summary = ref(null)
 const stepComponentRef = ref<any>(null)
-const formError = ref<string | null>(null) // Ajout
+const formError = ref<string | null>(null)
 
-watchEffect(() => {
-  if (currentSlug.value && !isSummary.value) {
-    loadStep(currentSlug.value).then(() => {
-      if (stepConfig.value) localData.value = { ...stepConfig.value.data }
-      formError.value = null // Réinitialise l’erreur à chaque étape
-    })
+onMounted(async () => {
+  await loadStep(currentSlug.value)
+  if (stepConfig.value) localData.value = { ...stepConfig.value.data }
+})
+
+watch(currentSlug, async (slug) => {
+  if (slug && !isSummary.value) {
+    await loadStep(slug)
+    if (stepConfig.value) localData.value = { ...stepConfig.value.data }
+    formError.value = null
   }
 })
 

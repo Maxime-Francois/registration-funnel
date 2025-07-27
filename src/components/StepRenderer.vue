@@ -92,7 +92,12 @@ watchEffect(() => {
   })
 })
 
-watch(model, (val) => emit('update:modelValue', val), { deep: true })
+watch(model, (val) => {
+  // Ne pas émettre si la valeur n'a pas changé
+  if (JSON.stringify(val) !== JSON.stringify(props.modelValue)) {
+    emit('update:modelValue', val)
+  }
+}, { deep: true })
 
 watch(
   () => props.stepConfig.slug,
